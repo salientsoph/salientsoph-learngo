@@ -13,5 +13,5 @@
 ## in the new file, initial setting
 1. package ____   (no needs to write "from ____" (ex.java) )
 2. import ____ 
-3. fmt.Println: use uppercase (if it is, it's not a private function) 
+3. fmt._P_rintln: use uppercase (if it is, it's not a private function) 
 
