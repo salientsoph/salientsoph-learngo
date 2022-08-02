@@ -9,13 +9,12 @@ import (
 //메인함수는 goRoutine을 기다려주지않음..
 func main() {
 
-	//make(채널이름 채널로보낼종류)
-	//어떤 타입의 정보를 보낼건지
+	//channel: goRoutine과 메인함수 사이에 정보를 전달하기 위한 방법
+	//make(채널이름 채널로보낼종류 (어떤 타입의 정보를 보낼건지) )
 	//channel을 통해 메인함수와 정보를 주고받음
-	//
-	c := make(chan bool)
+	c := make(chan string)
 
-	people := [2]string{"nico", "flynn"}
+	people := [5]string{"nico", "flynn", "dal", "larry"}
 	for _, person := range people {
 
 		//isSexy는 c라는 인수를 받음
@@ -27,9 +26,18 @@ func main() {
 	*/
 	//result := <-c //데이터 수신
 	//fmt.Println(result)
-	fmt.Println(<-c)
-	fmt.Println(<-c)
-	//fmt.Println(<-c)
+
+	/*
+		resultOne := <-c
+
+		fmt.Println("Waiting for message")
+		fmt.Println("Received this message: ", resultOne) //메세지 하나를 받으면 다음 문장으로 넘어감
+		fmt.Println("Received this message: ", <-c)
+	*/
+
+	for i := 0; i < len(people); i++ {
+		fmt.Println(<-c)
+	}
 }
 
 //goRoutine: 다른 함수와 동시에 실행시키는 함수
@@ -42,10 +50,7 @@ func sexyCount(person string) {
 }
 */
 
-func isSexy(person string, c chan bool) {
+func isSexy(person string, c chan string) {
 	time.Sleep(time.Second * 5)
-	fmt.Println(person)
-	c <- true //데이터 송신
+	c <- person + "is sexy" //데이터 송신
 }
-
-//channel: goRoutine과 메인함수 사이에 정보를 전달하기 위한 방법
