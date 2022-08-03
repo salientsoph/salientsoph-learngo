@@ -133,8 +133,7 @@ func theoryMain() {
 
 	//slices
 	names2 := []string{"nico", "lynn", "dal"}
-	names2 = append(names2, "lala") //append(slice, new value): 새로운 값이 추가된 slice를 return함
-	//변수에 담아준다
+	names2 = append(names2, "lala") //append(slice, new value): 새로운 값이 추가된 slice를 return함 -> 변수에 담아준다
 	fmt.Println(names2)
 
 	fmt.Println("----------------------------1.10 maps")
