@@ -1,4 +1,5 @@
-package main
+//package main
+package oldMains
 
 import (
 	"encoding/csv"
@@ -8,22 +9,32 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
+	"strings" //to use trimSpace()
 )
 
 /*
-	일 정보를 추출하는 함수는 getPage()와 channel 을 이용해서 정보를 주고 받음
-	getPage()는 main()과 channel을 이용해서 소통함
+	goquery: go에서 쓸 수 있는 jQuery
 
-	channel은 2개
-	1. main() <-> getPage()
-	2. getPage() <-> extractJob()
+	1. go get github.com/PuerkitoBio/goquery 로 설치
 
+	이때 main.go 를 run하면 src에서 못찾는다는 둥 설치 제대로 안되어있음.
+	go env -w GO111MODULE=off  (go 명령어 환경변수 변경)
+	한 후에 다시 시도해본다. (정석적인 방법은 아닌듯..)
 
-	1. extractJob()을 goroutine으로 만든다
-	   -> 1. getPage()에 channel을 만든다
-	   -> 2. extractJob()에서 channel을 받는다
-	   c := make(chan extractedJob)
+	-> workspace를 C:\Users\(name)\go에 두는 경우가 많더라구요.
+
+	-> 환경변수에서 GOPATH를 현재 github.com/작성자 프로젝트명/ 으로 변경하거나
+	   현재 작성중인 github.com폴더 자체를 통째로 c:/user/go/ 에다 옮겨준후
+	   vscode 폴더를 옮겨준 폴더로 열어준다음 다시 go get ~~query부분부터 다시 하면 정상실행
+
+	-> 나의 경우, go path setting(github readme.md에 올려둠)을 참고해서
+	   GOROOT와 GOPATH를 재세팅하고 나서
+	   go env -w GO111MODULE=off 한 후에야 드디어 됐다!
+
+	2. indeed 페이지에서 각각의 페이지를 방문하고,
+	   그 페이지로부터 job들을 추출
+
+	3. 추출한 job들을 엑셀에 집어넣기
 
 */
 
@@ -38,15 +49,17 @@ type extractedJob struct {
 var baseURL string = "https://kr.indeed.com/jobs?q=python&limit=50"
 
 //gets all the jobs
-func main() {
+func jobScrapperMain() {
 	var jobs []extractedJob //jobs라는 빈 배열
 
 	totalPages := getPages() //총 페이지 수
 	//fmt.Println(totalPages)
 
 	for i := 0; i < totalPages; i++ { //각 페이지별로 getPage함수 호출
-		extractedJobs := getPage(i) //한 페이지당 50개 정보가 있음
-		jobs = append(jobs, extractedJobs...)
+		extractedJobs := getPage(i)           //한 페이지당 50개 정보가 있음
+		jobs = append(jobs, extractedJobs...) //job이 추출될 때마다 jobs에 추가
+		//두 개의 배열을 합치려면 ... 을 사용[x x x]
+		//...을 쓰지 않으면, 배열 안에 배열이 또 추가되는 형태 [[x][x][x]]
 	}
 
 	writeJobs(jobs)
@@ -79,8 +92,6 @@ func writeJobs(jobs []extractedJob) {
 func getPage(page int) []extractedJob {
 	var jobs []extractedJob //jobs 라는 빈 배열
 
-	c := make(chan extractedJob)
-
 	//2.1 필요한 주소를 만듦 + 정보요청
 	//strconv.Itoa == stringConversion + int to string
 	pageURL := baseURL + "&start=" + strconv.Itoa(page*50)
@@ -97,20 +108,15 @@ func getPage(page int) []extractedJob {
 	//2.2 모든 카드를 찾은 후 각 카드에서 일자리 정보를 가져옴
 	searchCards := doc.Find(".job_seen_beacon")
 	searchCards.Each(func(i int, card *goquery.Selection) {
-		go extractJob(card, c) //extractedJob struct를 job에 저장
-		//jobs = append(jobs, job)   //job이 추출될 때마다 jobs에 추가
+		job := extractJob(card)  //extractedJob struct를 job에 저장
+		jobs = append(jobs, job) //job이 추출될 때마다 jobs에 추가
 	})
-
-	for i := 0; i < searchCards.Length(); i++ {
-		job := <-c
-		jobs = append(jobs, job)
-	}
 
 	return jobs //main으로 돌아감
 }
 
 // 3. extractedJob struct를 반환
-func extractJob(card *goquery.Selection, c chan<- extractedJob) extractedJob {
+func extractJob(card *goquery.Selection) extractedJob {
 	id_path := card.Find(".jcs-JobTitle")
 	id, _ := id_path.Attr("data-jk") //data-jk 라는 속성 추출
 	title := cleanString(id_path.Find("a>span").Text())
@@ -119,7 +125,7 @@ func extractJob(card *goquery.Selection, c chan<- extractedJob) extractedJob {
 	summary := cleanString(card.Find(".job-snippet").Text())
 	//fmt.Println(id, title, location, salary, summary)
 
-	c <- extractedJob{
+	return extractedJob{
 		id:       id,
 		title:    title,
 		location: location,
