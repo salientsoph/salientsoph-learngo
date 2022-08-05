@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings" //to use trimSpace()
 )
 
 /*
@@ -34,25 +37,111 @@ import (
 
 */
 
+type extractedJob struct {
+	id       string
+	title    string
+	location string
+	salary   string
+	summary  string
+}
+
 var baseURL string = "https://kr.indeed.com/jobs?q=python&limit=50"
 
+//gets all the jobs
 func main() {
+	var jobs []extractedJob //jobs라는 빈 배열
+
 	totalPages := getPages() //총 페이지 수
 	//fmt.Println(totalPages)
 
-	for i := 0; i < totalPages; i++ {
-		getPage(i)
+	for i := 0; i < totalPages; i++ { //각 페이지별로 getPage함수 호출
+		extractedJobs := getPage(i)           //한 페이지당 50개 정보가 있음
+		jobs = append(jobs, extractedJobs...) //job이 추출될 때마다 jobs에 추가
+		//두 개의 배열을 합치려면 ... 을 사용[x x x]
+		//...을 쓰지 않으면, 배열 안에 배열이 또 추가되는 형태 [[x][x][x]]
 	}
+
+	writeJobs(jobs)
+	fmt.Println("Done, extracted: ", len(jobs))
 }
 
-//2.
-func getPage(page int) {
+//4. 일자리를 csv 파일로 저장
+func writeJobs(jobs []extractedJob) {
+	file, err := os.Create("jobs.csv")
+	checkErr(err)
+
+	w := csv.NewWriter(file) //파일을 새로 만듦
+	defer w.Flush()          //함수가 끝나는 시점에 파일에 데이터를 입력하는 함수
+
+	headers := []string{"ID", "Title", "Location", "Salary", "Summary"}
+
+	wErr := w.Write(headers)
+	checkErr(wErr)
+
+	//write 함수에는 []string 형태가 입력되어야함
+	for _, job := range jobs {
+		jobSlice := []string{"https://kr.indeed.com/viewjob?jk=" + job.id, job.title, job.location, job.salary, job.summary}
+		jwErr := w.Write(jobSlice)
+		checkErr(jwErr)
+	} // 이게 끝나면 defer가 실행되고, 데이터가 파일에 입력됨
+
+}
+
+//2. 각 페이지에 있는 일자리를 모두 반환
+func getPage(page int) []extractedJob {
+	var jobs []extractedJob //jobs 라는 빈 배열
+
+	//2.1 필요한 주소를 만듦 + 정보요청
 	//strconv.Itoa == stringConversion + int to string
 	pageURL := baseURL + "&start=" + strconv.Itoa(page*50)
 	fmt.Println("Requesting: ", pageURL)
+	res, err := http.Get(pageURL)
+	checkErr(err)
+	checkCode(res)
+
+	defer res.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(res.Body) //res.Body = byte(IO (입출력)) -> close해줘야함
+	checkErr(err)
+
+	//2.2 모든 카드를 찾은 후 각 카드에서 일자리 정보를 가져옴
+	searchCards := doc.Find(".job_seen_beacon")
+	searchCards.Each(func(i int, card *goquery.Selection) {
+		job := extractJob(card)  //extractedJob struct를 job에 저장
+		jobs = append(jobs, job) //job이 추출될 때마다 jobs에 추가
+	})
+
+	return jobs //main으로 돌아감
 }
 
-//1. 페이지수를 가져온다
+// 3. extractedJob struct를 반환
+func extractJob(card *goquery.Selection) extractedJob {
+	id_path := card.Find(".jcs-JobTitle")
+	id, _ := id_path.Attr("data-jk") //data-jk 라는 속성 추출
+	title := cleanString(id_path.Find("a>span").Text())
+	location := cleanString(card.Find(".companyLocation").Text())
+	salary := cleanString(card.Find(".attribute_snippet").Text())
+	summary := cleanString(card.Find(".job-snippet").Text())
+	//fmt.Println(id, title, location, salary, summary)
+
+	return extractedJob{
+		id:       id,
+		title:    title,
+		location: location,
+		salary:   salary,
+		summary:  summary}
+}
+
+func cleanString(str string) string {
+	//Fields(): strings를 나눔 -> 텍스트로만 이루어진 배열을 리턴
+	//TrimSpace(): 양쪽의 공백을 없앰
+	//return strings.Fields(strings.TrimSpace(str))
+
+	//join: 배열을 seperator로 합침
+	return strings.Join(strings.Fields(strings.TrimSpace(str)), "  ")
+}
+
+//1. 총 페이지수를 가져온다
 func getPages() int {
 
 	pages := 0
