@@ -1,5 +1,5 @@
 
-# Learning Go lang 
+# Learning Go lang (2022.08. ~ ) 
 
 # 0. INTRODUCTION
 ## 0.1 to start go, initial setting 
@@ -28,3 +28,7 @@
   - GOROOT: go가 설치된 디렉토리. go 표준 패키지 사용 용도. 
   - GOPATH: 사용자가 작업하게 되는 루트. github에서 third party 패키지를 사용하게 될 경우 저장되는 곳. 
 2. Path에 GOROOT\bin 이 설정된다. 
+
+### github import error 
+내 경우, go는 C:\Go 에 바로 설치했기 때문에(go 설치시 default는 C:\user\users(이름)\Go 였음) 이를 GOROOT로 잡아줬고(GOROOT가 왜인지 자동으로 생성 안되어있었음)
+GOPATH는 C:\user\users\go 파일로 잡아줬음(왜 각각으로 되어있는지 모르겠으나, src 파일 많아지는 것보단 나은듯)
