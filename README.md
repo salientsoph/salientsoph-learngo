@@ -18,3 +18,13 @@
 
 # 1. THEORY
 ## 1.1 
+
+
+
+
+# PATH setting 
+윈도우 기준으로 go 설치시 
+1. 자동으로 환경변수에 GOROOT, GOPATH가 세팅된다. 
+  - GOROOT: go가 설치된 디렉토리. go 표준 패키지 사용 용도. 
+  - GOPATH: 사용자가 작업하게 되는 루트. github에서 third party 패키지를 사용하게 될 경우 저장되는 곳. 
+2. Path에 GOROOT\bin 이 설정된다. 
